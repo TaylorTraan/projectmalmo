@@ -1,0 +1,58 @@
+---
+description: Python style, structure, type hints, and error handling for RL and env code
+globs: **/*.py
+alwaysApply: false
+---
+
+# Python Style & Structure (RL + Env Code)
+
+- **Scope**: Applies to all Python files, with extra attention to RL training code and environment wrappers.
+
+- **General Style**
+  - **Do**: Follow PEP 8 naming and formatting (snake_case for functions/variables, CapWords for classes).
+  - **Do**: Keep functions short and single-purpose (ideally under ~40–50 lines).
+  - **Don’t**: Hide core logic inside long monolithic scripts; extract helpers and modules.
+
+- **Type Hints and Interfaces**
+  - **Do**: Use type hints on all public functions and class methods, especially around env APIs, Q-learning utilities, and logging.
+  - **Do**: Use `typing` and `collections.abc` types (e.g., `Dict[str, float]`, `Iterable[int]`) instead of `Any` where reasonable.
+  - **Don’t**: Introduce runtime type-checking libraries unless explicitly required; keep dependencies light.
+
+- **Module and File Structure**
+  - **Do**: Separate concerns:
+    - Environment wrappers in `env/`.
+    - Algorithm and agent code (e.g., Q-learning) in `agents/` or similar.
+    - Experiment orchestration and configs in `configs/` and `scripts/`.
+  - **Do**: Keep imports explicit; avoid wildcard imports (`from x import *`).
+  - **Don’t**: Cross-import high-level training scripts into low-level env modules (keep env-side dependencies minimal).
+
+- **Error Handling and Malmo Robustness**
+  - **Do**: Check for missing or empty Malmo `world_state.observations` before using them; handle the “no observation yet” case gracefully.
+  - **Do**: Raise clear, custom exceptions (e.g., `ObservationMissingError`) when the environment is in an unrecoverable state, and surface them to callers.
+  - **Do**: Prefer explicit `if` checks and early returns over catching broad exceptions.
+  - **Don’t**: Use bare `except:` or swallow exceptions without logging context.
+  - **Example (Do)**:
+    ```python
+    if not world_state.is_mission_running:
+        raise RuntimeError("Mission ended unexpectedly before observation.")
+    if not world_state.observations:
+        return last_obs, 0.0, False, {"termination_reason": "no_observation_yet"}
+    ```
+  - **Example (Don’t)**:
+    ```python
+    try:
+        obs = json.loads(world_state.observations[-1].text)
+    except Exception:
+        obs = None  # silently ignore
+    ```
+
+- **Logging and Messages**
+  - **Do**: Use a shared logger (or simple structured print helpers) instead of ad-hoc `print` statements scattered throughout the code.
+  - **Do**: Include episode index, seed, and config name in important logs.
+  - **Don’t**: Log excessive per-step debug info by default; keep detailed logs behind a config flag (e.g., `debug: true`).
+
+- **Determinism and Randomness**
+  - **Do**: Thread a `seed` parameter through experiment entry points and set all relevant RNGs (Python, NumPy, any RL libs) in one place.
+  - **Do**: Avoid global random state changes in library code; confine seeding to experiment setup scripts.
+  - **Don’t**: Call `random.seed()` or `np.random.seed()` in deep utility functions that may be reused.
+

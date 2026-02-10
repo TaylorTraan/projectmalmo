@@ -1,0 +1,53 @@
+---
+description: Documentation, setup guides, experiment docs, and assistant response UX
+alwaysApply: false
+---
+
+# Documentation & Assistant UX
+
+- **Scope**: Applies to all project documentation (especially Malmo setup and experiments) and to how the assistant structures responses for this repo.
+
+- **Malmo Setup Documentation (`MALMO_SETUP.md`)**
+  - **Do**: Maintain a clear step-by-step guide for installing and configuring Project Malmo, including:
+    - OS prerequisites.
+    - Malmo installation steps.
+    - Any required environment variables or paths.
+    - A minimal “hello world” mission to verify the install.
+  - **Do**: Update `MALMO_SETUP.md` whenever the setup process, required versions, or verification steps change.
+  - **Don’t**: Assume Malmo is installed; always reference or update the setup doc when adding new requirements.
+
+- **Experiment Documentation (`EXPERIMENTS.md`)**
+  - **Do**: Document each major family of experiments with:
+    - The research question.
+    - The relevant config files and env versions.
+    - Key metrics (reward, success rate, termination breakdown, etc.).
+    - How to reproduce the core runs (commands and seeds).
+  - **Do**: Link from `EXPERIMENTS.md` to example plots or analysis notebooks when relevant.
+  - **Don’t**: Rely on scattered comments or commit messages to explain experimental design.
+
+- **Change Logs for Behavior-Affecting Changes**
+  - **Do**: When changing environment behavior, reward structure, or algorithm defaults, add a brief note either in `EXPERIMENTS.md` or a small CHANGELOG section describing:
+    - What changed.
+    - Why it changed.
+    - Which configs or scripts are affected.
+  - **Don’t**: Introduce breaking behavioral changes (e.g., new termination reasons, different observation schema) without updating docs.
+
+- **Assistant Response UX for This Repo**
+  - **Do**: When proposing code changes, the assistant should:
+    - Clearly indicate which files/functions are affected.
+    - Highlight how changes impact experiments, reproducibility, or env behavior.
+    - Suggest updates to configs, `EXPERIMENTS.md`, or `MALMO_SETUP.md` when relevant.
+  - **Do**: Keep responses concise, focusing on:
+    - What changed.
+    - How to run it.
+    - How it affects experimental interpretation.
+  - **Don’t**: Dump large, unstructured code blocks or mix multiple unrelated changes in a single response.
+
+- **User-Facing Outputs and Logs**
+  - **Do**: Ensure that scripts print or log:
+    - The config name.
+    - The seed(s).
+    - A short summary of results (e.g., mean reward, success rate, termination breakdown).
+  - **Do**: Point users to the `runs/` directory and any analysis tooling rather than leaving results “hidden” in intermediate files.
+  - **Don’t**: Require users to read raw log internals or internal data structures just to understand high-level outcomes.
+
