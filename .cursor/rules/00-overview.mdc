@@ -1,0 +1,39 @@
+---
+description: High-level goals and priorities for the CS175 Project Malmo repo
+alwaysApply: true
+---
+
+# Project Malmo RL Overview & Priorities
+
+- **Scope**: Applies to all changes in this repo, regardless of language or directory.
+
+- **Primary Goal Is Insight, Not SOTA Performance**
+  - **Do**: Prioritize clarity, interpretability, and clean comparisons over raw reward.
+  - **Do**: Keep algorithms simple (e.g., random, tabular Q-learning) unless a more complex method directly answers a concrete research question.
+  - **Don’t**: Introduce complex architectures or heavy libraries just to “improve scores” without a clear experimental purpose.
+
+- **Controlled, Reproducible Experiments**
+  - **Do**: Treat every experiment as something that must be re-run later (by you or someone else).
+  - **Do**: Ensure that experiment behavior is determined by explicit configs, seeds, and environment definitions.
+  - **Don’t**: Hide important behavior in ad-hoc scripts, notebook cells, or hardcoded constants.
+
+- **Environment as a Scientific Instrument**
+  - **Do**: Treat the Malmo environment like lab equipment: stable, well-documented, and versioned via configs.
+  - **Do**: Maintain a clear, gym-like API (`reset()`, `step()`) for all environments.
+  - **Don’t**: Mix environment wiring with training loop logic, logging, or analysis.
+
+- **Baselines First, Extensions Second**
+  - **Do**: Keep random and tabular Q-learning baselines working, well-tested, and easy to re-run.
+  - **Do**: When adding new methods or features, show how they compare to baselines on the same seeds, configs, and environment versions.
+  - **Don’t**: Break or neglect baselines when extending the codebase.
+
+- **Explicit Assumptions and Termination Reasons**
+  - **Do**: Make all experimental assumptions explicit in configs and documentation (e.g., observation space, action mapping, reward scheme).
+  - **Do**: Log termination reasons for episodes (e.g., success via diamond pickup, failure by falling, timeout).
+  - **Don’t**: Change definitions of success/failure, reward shaping, or termination silently.
+
+- **Small, Well-Scoped Changes**
+  - **Do**: Prefer small, incremental PRs or change sets tied to a single experimental question or component.
+  - **Do**: Keep environment, algorithm, and analysis changes clearly separated when possible.
+  - **Don’t**: bundle unrelated refactors, environment changes, and new algorithms in a single change.
+

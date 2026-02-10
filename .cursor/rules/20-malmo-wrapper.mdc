@@ -1,0 +1,65 @@
+---
+description: Strict rules for Malmo environment wrapper, actions, observations, and termination
+globs: env/**/*.py
+alwaysApply: false
+---
+
+# Malmo Environment Wrapper & API
+
+- **Scope**: Applies to all Malmo-specific environment code under `env/` (mission XML, world_state handling, action mapping, observations, termination).
+
+- **Gym-like API Contract**
+  - **Do**: Expose a gym-style interface:
+    - `reset(seed: int | None = None, options: dict | None = None) -> observation`
+    - `step(action) -> tuple[observation, float, bool, dict]` (or gymnasium-style `observation, reward, terminated, truncated, info` if you upgrade consistently).
+  - **Do**: Ensure that training and experiment code only depend on this API, not on raw Malmo objects.
+  - **Don’t**: Add extra required positional args to `reset()` / `step()` without updating configs and docs.
+
+- **Isolation of Malmo-Specific Code**
+  - **Do**: Keep all direct Malmo SDK usage (agents, missions, world_state, XML) inside `env/`.
+  - **Do**: Export only clean Python types (e.g., dict/tuple/np.array) from env to the rest of the codebase.
+  - **Don’t**: Import Malmo SDK directly in agents, training loops, or analysis modules.
+
+- **Action Mapping (N/S/E/W + Stop)**
+  - **Do**: Implement a minimal, explicit action space v0:
+    - Actions: `N`, `S`, `E`, `W` (and any “no-op” if needed), mapped to Malmo move/strafe commands.
+    - Fixed number of ticks per action, then an explicit stop/zero-velocity command.
+  - **Do**: Centralize the action mapping logic in one place (e.g., an `ActionMapper` or helper function) so it is easy to audit and compare across experiments.
+  - **Do**: Document the mapping clearly in code comments and `MALMO_SETUP.md`.
+  - **Don’t**: Change movement durations, velocities, or add extra movement axes without updating configs, docs, and baseline scripts.
+
+- **Observation Definition v0**
+  - **Do**: Provide a minimal observation consisting of agent position `(x, z)` and `y` (for fall detection) from Malmo observations.
+  - **Do**: Convert raw JSON observations into a stable, documented Python structure (e.g., dict or fixed-length NumPy array).
+  - **Do**: Version observation definitions (e.g., `obs_version: 0`) in either env code or configs when they change.
+  - **Don’t**: Silently add/remove observation fields; treat this as a breaking change that must be reflected in configs and experiments docs.
+
+- **Robust Handling of Missing Observations**
+  - **Do**: Handle the case where `world_state.observations` is empty:
+    - If the mission is still running, return the last valid observation with `reward=0` and `done=False`, and add an `info["termination_reason"]` or status field like `"no_observation_yet"`.
+    - If the mission has ended unexpectedly, mark the episode as done and set an appropriate `termination_reason` (e.g., `"malmo_mission_ended_early"`).
+  - **Do**: Log repeated missing-observation situations at a throttled rate (not every tick) so issues can be debugged.
+  - **Don’t**: Crash training loops due to a single missing observation or silently treat `None` as a valid observation.
+
+- **Termination and Success/Failure Semantics**
+  - **Do**: Implement success as **diamond pickup** verified via inventory count increase (e.g., via Malmo FullStats).
+  - **Do**: Implement at least the following termination reasons and surface them via `info["termination_reason"]`:
+    - `"success_diamond_picked_up"`
+    - `"failure_fell_off_platform"` (e.g., y below threshold)
+    - `"timeout_max_steps_reached"`
+    - `"malmo_mission_ended_early"` (unexpected termination)
+  - **Do**: Keep the termination enum/string set stable; add new reasons only when necessary and document them.
+  - **Don’t**: Overload success/failure meaning in the reward alone; always set explicit termination flags and info fields.
+
+- **Smoke Tests for Env Changes**
+  - **Do**: Provide a lightweight smoke test script (e.g., `scripts/smoke_test_env.py`) that:
+    - Creates the env.
+    - Runs `reset()` once (with a fixed seed).
+    - Runs a few `step()` calls with random or fixed actions.
+    - Prints key info: observation shape, sample observation, termination reasons seen.
+  - **Do**: Update and run this smoke test whenever:
+    - Action space changes.
+    - Observation space or structure changes.
+    - Termination conditions change.
+  - **Don’t**: Merge env changes without verifying the smoke test passes.
+

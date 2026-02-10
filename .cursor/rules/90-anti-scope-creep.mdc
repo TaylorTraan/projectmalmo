@@ -1,0 +1,38 @@
+---
+description: Guardrails against scope creep, heavy dependencies, and silent behavioral changes
+alwaysApply: false
+---
+
+# Anti–Scope Creep & Guardrails
+
+- **Scope**: Applies to all new features, algorithm additions, and dependency changes across the repo.
+
+- **Stay Within Project Scope**
+  - **Do**: Focus on random policies, tabular Q-learning, and small, interpretable extensions that address concrete research questions.
+  - **Do**: Propose more complex methods (e.g., function approximation, deep networks) only when they are necessary to answer a clearly stated question.
+  - **Don’t**: Introduce DQN, PPO, or full deep RL stacks unless the user explicitly requests it and the experimental question is documented.
+
+- **Avoid Heavy or Unnecessary Dependencies**
+  - **Do**: Prefer the standard library and lightweight libraries already in use.
+  - **Do**: Justify any new dependency in terms of experimental needs, reproducibility, or safety (e.g., config parsing, logging).
+  - **Don’t**: Add large frameworks (e.g., full RL libraries, plotting suites, or deep learning frameworks) without explicit justification and user buy-in.
+
+- **No Silent API or Behavior Changes**
+  - **Do**: Treat changes to env APIs, observation structures, action mappings, or termination reasons as breaking changes.
+  - **Do**: When they must change, also:
+    - Update configs to reference the new versions.
+    - Update docs (`MALMO_SETUP.md`, `EXPERIMENTS.md`) as needed.
+    - Note the change in a short changelog or commit message.
+  - **Don’t**: Change what `reset()` or `step()` return, or alter semantics of success/failure, without explicitly calling it out.
+
+- **Limit Experimental Explosion**
+  - **Do**: Keep the set of officially supported experiment configs small, curated, and well-documented.
+  - **Do**: Archive or clearly mark “experimental” or deprecated configs, rather than leaving them indistinguishable from current ones.
+  - **Don’t**: Accumulate many ad-hoc configs and half-finished experimental branches without documenting their purpose.
+
+- **Assistant Behavior Constraints**
+  - **Do**: When the assistant suggests new capabilities (e.g., new env variants, new algorithms), it should:
+    - Explain how they connect to the core research goals.
+    - Call out required updates to configs, docs, and tests.
+  - **Don’t**: Refactor or redesign core components (env API, logging formats, config structure) just for stylistic reasons; prioritize stability.
+

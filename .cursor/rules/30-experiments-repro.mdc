@@ -1,0 +1,49 @@
+---
+description: Experiment configuration, reproducibility, logging, and change-one-variable-at-a-time practice
+alwaysApply: false
+---
+
+# Experiments, Configs, and Reproducibility
+
+- **Scope**: Applies to all experiment scripts, training loops, and analysis code that runs RL experiments.
+
+- **Config-Driven Experiments (No Hardcoded Params)**
+  - **Do**: Store all experiment settings in `configs/` (YAML/JSON/python dataclasses): env name, observation version, action mapping version, reward structure, episode length, learning rate, epsilon schedule, number of episodes, etc.
+  - **Do**: Make experiment entry points accept a `config_name` (or path) and load all hyperparameters from there.
+  - **Don’t**: Hardcode experiment-critical parameters in scripts or notebooks (e.g., `num_episodes = 500` inside a training loop).
+
+- **Seeds and Determinism**
+  - **Do**: Include a `seed` (or list of seeds) in every experiment config.
+  - **Do**: Set seeds for Python `random`, NumPy, and any relevant RL libs in a single, shared utility called from each experiment entry point.
+  - **Do**: Log the seed(s) used in both stdout and run metadata.
+  - **Don’t**: Rely on default RNG behavior; running the same config twice should aim to reproduce results (within stochastic variance).
+
+- **Change One Variable at a Time**
+  - **Do**: When comparing experiments, derive new configs from a known baseline and change **only one factor** (e.g., reward shape, observation richness, algorithm).
+  - **Do**: Name configs to reflect the key change (e.g., `tabular_q_obs_v0_reward_sparse.yaml` vs `tabular_q_obs_v0_reward_shaped.yaml`).
+  - **Don’t**: Simultaneously change env, reward, and algorithm when testing a new idea; this makes results uninterpretable.
+
+- **Runs Directory and Required Logging Fields**
+  - **Do**: Save all run artifacts under `runs/` in a structured layout, e.g., `runs/{date}_{time}_{config_name}_seed{seed}/`.
+  - **Do**: For each episode, log at minimum:
+    - `episode` (int)
+    - `reward` (float total episode return)
+    - `steps` (int, number of env steps)
+    - `success` (bool or 0/1)
+    - `termination_reason` (string/enum, matching env info)
+    - `seed` (int)
+    - `config_name` (string identifier or path)
+  - **Do**: Save logs in a machine-readable format (CSV, JSONL, or similar) plus optional human-friendly summaries.
+  - **Don’t**: Scatter logs in arbitrary locations or overwrite past runs with the same filenames.
+
+- **Metadata and Versioning**
+  - **Do**: Store a copy or hash of the exact config used along with each run (e.g., write the config file into `runs/.../config.yaml`).
+  - **Do**: Include env-related version tags in configs (e.g., `env_version`, `obs_version`, `action_version`) and log them.
+  - **Don’t**: Rely on comments or memory to recall which env or reward version was used.
+
+- **Minimal Experiment Entry Points**
+  - **Do**: Provide simple CLI entry points like:
+    - `python -m scripts.run_experiment --config configs/tabular_q_obs_v0.yaml`
+  - **Do**: Keep these scripts thin: parse args, load config, set seeds, construct env, run training, and write logs.
+  - **Don’t**: Put exploratory analysis, plotting, or debug-only code in the main training path; keep that in separate notebooks or scripts.
+
