@@ -1,284 +1,126 @@
-## Malmo Setup (macOS, zsh) for CS175
+## Malmo Setup (Docker) for CS175
 
-This guide walks you through setting up Project Malmo and this repo on macOS with a Python virtual environment, plus a simple smoke test to check everything works.
+This guide uses **Docker only** to run Project Malmo. The container provides a Linux desktop (noVNC), Minecraft with the Malmo mod, Python/Malmo bindings, and Jupyter. No native macOS install of Malmo or Java is required.
 
-The goal is **reproducibility**: everyone should be able to follow these steps and get the same behavior.
+The goal is **reproducibility**: everyone can use the same image and run command to get the same behavior.
 
 ---
 
 ## 1. Prerequisites
 
-- **Operating system / CPU**
-  - Tested on recent macOS releases (e.g., 13+).
-  - **Apple Silicon (M1/M2/M3, arm64)** needs a small extra setup step (Rosetta + Intel Python); see **Section 2.3 – Recommended Apple Silicon path**.
-  - Older versions may also work but are not guaranteed.
-
-- **Homebrew**
-  - Install Homebrew if you do not already have it:
-    - Follow the instructions at `https://brew.sh`
-
-- **Xcode Command Line Tools**
-  - Some dependencies require build tools:
-  - In a terminal:
-    - `xcode-select --install`
-
-- **Java (JDK 8+)**
-  - Malmo is built on top of Minecraft and requires Java.
-  - Recommended (LTS) via Homebrew:
-    - `brew install --cask temurin@8`
-  - Verify:
-    - `java -version`
-
-- **Python 3**
-  - We use a standard Homebrew Python:
-    - `brew install python3`
-  - Verify:
-    - `python3 --version`
-
-- **Malmo dependencies (from official docs)**
-  - Based on the upstream `install_macosx.md`:
-    - `brew install ffmpeg boost-python3`
-  - These provide video and Boost.Python bindings used by Malmo.
+- **Docker** installed on your machine (Docker Desktop on Mac/Windows, or Docker Engine on Linux).
+- On **Apple Silicon (M1/M2/M3) Macs**, use `--platform=linux/amd64` so the image runs correctly (the commands below include it).
 
 ---
 
-## 2. Installing Project Malmo (recommended path for CS175)
+## 2. Pull and run the Malmo container
 
-For this course we **always** use the official Malmo zip with:
+From a terminal, pull the image (one-time or when you want to update):
 
-- Java 8 (Temurin),
-- a **Rosetta (Intel) shell** on Apple Silicon,
-- and **Python 3.7** in a dedicated virtual environment.
+```bash
+docker pull --platform=linux/amd64 andkram/malmo
+```
 
-`pip install malmo` / wheels are **not** supported or expected to work in this setup.
+From your **project repo directory** (the one that contains `env/`, `scripts/`, etc.), start the container:
 
-### 2.1. Get the official Malmo zip
+```bash
+docker run -it --rm \
+  --platform=linux/amd64 \
+  -p 5901:5901 \
+  -p 6901:6901 \
+  -p 10000:10000 \
+  -p 8888:8888 \
+  -v "$PWD":/workspace \
+  andkram/malmo
+```
 
-1. **Download Malmo**
-   - Go to the official GitHub releases page:
-     - `https://github.com/Microsoft/malmo/releases`
-   - Download the latest stable release zip for macOS (e.g., `Malmo-0.37.0-Mac-64bit_withBoost_Python3.7.zip`).
+**What the flags do:**
 
-2. **Unzip Malmo**
-   - Move the zip somewhere stable, e.g. your home directory or Desktop.
-   - In a terminal:
+| Flag | Purpose |
+|------|--------|
+| `--platform=linux/amd64` | Use x86 image (required on Apple Silicon Macs). |
+| `-p 6901:6901` | noVNC — view the desktop and Minecraft in your browser. |
+| `-p 5901:5901` | Raw VNC (optional; noVNC is enough for most use). |
+| `-p 8888:8888` | Jupyter Notebook — run Python agent code. |
+| `-p 10000:10000` | Malmo — Python connects to Minecraft on this port. |
+| `-v "$PWD":/workspace` | Mount your project into the container so you can edit code locally and run it inside. |
 
-   ```bash
-     cd ~/Desktop
-     mkdir -p MalmoPlatform
-     cd MalmoPlatform
-     unzip ~/Downloads/Malmo-0.37.0-Mac-64bit_withBoost_Python3.7.zip
-     ```
-
-     - Adjust the zip file name if you downloaded a different version.
-     - After this, you should have a directory such as:
-       - `~/Desktop/MalmoPlatform/Malmo-0.37.0-Mac-64bit_withBoost_Python3.7`
-
-3. **Set MALMO_HOME, MALMO_XSD_PATH, PYTHONPATH**
-   - Malmo requires environment variables pointing at its install and XML schemas, plus a `PYTHONPATH` entry for the Python bindings.
-   - Add these lines to your `~/.zshrc` (adjust the folder name if needed):
-
-   ```bash
-     echo 'export MALMO_HOME="$HOME/Desktop/MalmoPlatform/Malmo-0.37.0-Mac-64bit_withBoost_Python3.7"' >> ~/.zshrc
-     echo 'export MALMO_XSD_PATH="$MALMO_HOME/Schemas"' >> ~/.zshrc
-     echo 'export PYTHONPATH="$MALMO_HOME/Python_Examples:$PYTHONPATH"' >> ~/.zshrc
-     source ~/.zshrc
-   ```
-
-4. **Launch the Malmo Minecraft client**
-   - In a separate terminal **outside** the venv:
-
-   ```bash
-     cd "$MALMO_HOME/Minecraft"
-     ./launchClient.sh
-   ```
-
-   - Wait for Minecraft to fully load with the Malmo mod. Leave this running while you use the environment.
-
-5. **Verify `MalmoPython`**
-
-   - Back in your project repo (with the venv activated and environment variables loaded), run:
-
-   ```bash
-     python -c "import MalmoPython; print('MalmoPython import OK')"
-     ```
-
-   - If this fails, double-check:
-     - `PYTHONPATH` includes the directory containing `MalmoPython.so`.
-     - You are using the same Python **major/minor version and architecture** that Malmo was built for (e.g., Python 3.7 x86_64 in a Rosetta shell).
+When the container starts, it launches the desktop, VNC/noVNC, Minecraft with the Malmo mod, and Jupyter. No manual startup steps are needed.
 
 ---
 
-## 3. Python virtual environment (per-repo)
+## 3. Access noVNC and Jupyter
 
-All project work should happen inside a virtual environment in this repo for reproducibility.
+- **Minecraft (desktop UI)**  
+  In your browser, open: **http://127.0.0.1:6901**  
+  When prompted for a password, try: **`vncpassword`** or **`malmo`** (image-dependent).
 
-From the **repo root** (where the `README.md` lives):
+- **Jupyter Notebook**  
+  Open the URL printed in the container logs (it includes a token), e.g.:  
+  **http://127.0.0.1:8888/?token=...**
 
-```bash
-cd /path/to/projectmalmo
-
-# Create venv (one-time)
-# - On Apple Silicon using the official Malmo zip: prefer a Rosetta + Python 3.7 venv.
-
-python3.7 -m venv .venv_malmo37
-
-# Activate (zsh)
-source .venv_malmo37/bin/activate
-
-# Upgrade pip (optional but recommended)
-pip install --upgrade pip
-```
-
-You should now see something like `(.venv_malmo37)` at the start of your shell prompt.
-
-Install Python dependencies inside the venv:
-
-```bash
-# Do NOT install Malmo with pip in this setup.
-# Malmo is provided by the zip + MALMO_HOME / PYTHONPATH configuration.
-
-# Any other minimal utilities used by this repo
-# (currently the core wrapper aims to be pure Python with stdlib only)
-```
-
-To deactivate the venv:
-
-```bash
-deactivate
-```
+You run Python agent code in Jupyter; Minecraft runs visually in the noVNC window. When you start a mission from Python, the agent connects to Minecraft on port 10000.
 
 ---
 
-## 4. Running the project smoke test
+## 4. Example usage from Jupyter (env wrapper + training harness)
 
-Once:
+1. In Jupyter, go to `/workspace` (your mounted project). Open **notebooks/run_malmo_agent.ipynb**.
+2. Run the first cell to add `/workspace` to `sys.path` and set `mission_path` to `/workspace/env/mission.xml`.
+3. Run the remaining cells to create `MalmoGridEnv` and run a few episodes with a minimal training loop (random actions). This demonstrates the standardized `reset`/`step` interface.
 
-- Java + Malmo are installed,
-- the Minecraft client with Malmo mod is running,
-- your virtual environment is activated,
+The first time you call `env.reset()`, a mission starts and Python connects to Minecraft on port 10000; the game will load in the noVNC window.
 
-you can run the project-level smoke test.
+---
 
-> Note: The script `scripts/smoke_test_env.py` expects a mission XML at `env/mission.xml`. The mission in this repo is intentionally simple and focused on a small platform + diamond task.
+## 5. Running the smoke test (inside the container)
 
-From the repo root:
+If you open a **shell inside the running container** (e.g. from Jupyter: New → Terminal, or `docker exec` from the host), you can run the project smoke test from the workspace:
 
 ```bash
-source .venv/bin/activate   # if not already active
+cd /workspace
 python scripts/smoke_test_env.py --episodes 1
 ```
 
-You should see output resembling:
-
-- The script printing that it created `MalmoGridEnv`.
-- Per-episode summary lines such as:
-  - `Episode 0: total_reward=0.0 termination_reason=timeout_max_steps_reached position={'x': ..., 'z': ..., 'y': ...} diamond_count=0`
-
-Exact numbers will vary because the smoke test uses random actions, but **you should see a clear termination reason** at the end of the run.
-
-If the script fails, scroll up to find the first traceback or error message and consult the **Common errors** section below.
+You should see the script create `MalmoGridEnv`, run one episode (e.g. with random actions), and print a termination reason. Minecraft must be running in the noVNC desktop for the mission to start.
 
 ---
 
-## 5. Minimal manual Malmo smoke test (outside this repo)
+## 6. Common issues & fixes
 
-If you just want to verify that your Malmo install is basically working (before touching this repo’s code):
+### “Nothing is listening on port 10000”
 
-1. Ensure the Malmo Minecraft client is running (`launchClient.sh`).
-2. In another terminal (with any Python that has access to `MalmoPython`):
+This is **normal until a mission is started**. Minecraft listens on port 10000 only after it has loaded and a mission is launched. Run the “Run episodes” cell in the notebook; the first `env.reset()` starts the mission and establishes the connection.
 
-   ```bash
-   python -c "import MalmoPython; print('MalmoPython import OK')"
-   ```
+### Timeout waiting for mission to begin
 
-3. Optionally run one of the official Malmo Python examples (paths vary by release; see the Malmo docs / course starter).
+- Ensure Minecraft is running in the noVNC window (http://127.0.0.1:6901). If the desktop or Minecraft didn’t start, try restarting the container.
+- Don’t start a second mission while one is already active; close extra Minecraft windows if needed.
 
----
+### “Mission ended before any observation was received”
 
-## 6. Common errors & fixes
+This means the mission started from Python’s side but the game closed or never sent observations. **Do this first:**
 
-### 6.1 `ModuleNotFoundError: No module named 'MalmoPython'`
+1. Open noVNC in your browser: http://127.0.0.1:6901 and log in (password often `vncpassword` or `malmo`).
+2. In the desktop, make sure **Minecraft is running** and has **fully loaded** (main menu or world visible, Malmo mod loaded). If it isn’t running, start it from the desktop (e.g. double‑click the Minecraft launcher or icon).
+3. Wait until Minecraft is idle and ready (no “Loading…” or crash).
+4. From the terminal (with `PYTHONPATH` set as before), run the smoke test again:  
+   `python3 -m scripts.smoke_test_env --episodes 1`
 
-Possible causes and fixes:
+If Minecraft was already running, try closing any in‑game world, returning to the main menu, then running the script again. Only one mission can use the client at a time.
 
-- **You are not in the Malmo venv**
-  - Make sure you ran (or equivalent):
+### Can’t log in to noVNC
 
-    ```bash
-    source .venv_malmo37/bin/activate
-    ```
+Try the VNC password **`vncpassword`** or **`malmo`** (depends on the image).
 
-- **Malmo is not on this Python’s `sys.path`**
-  - Confirm that `PYTHONPATH` includes the directory containing the Malmo Python bindings (`MalmoPython.so`):
+### Import errors for `env` in Jupyter
 
-    ```bash
-    python -c "import sys, os; print([p for p in sys.path if 'Malmo' in p])"
-    ```
-
-  - If needed, re-add the env var and reload your shell:
-
-    ```bash
-    echo 'export PYTHONPATH="$MALMO_HOME/Python_Examples:$PYTHONPATH"' >> ~/.zshrc
-    source ~/.zshrc
-    ```
-
-- **Python version / architecture mismatch**
-  - The official Malmo zip used here ships binaries for **Python 3.7 on Intel (x86_64)**.
-  - Make sure:
-    - `python --version` shows `3.7.x`, **and**
-    - `arch` prints `i386` or `x86_64` (not `arm64`).
-
-### 6.2 `Please set the MALMO_XSD_PATH environment variable`
-
-- This usually comes from the official Malmo examples or some mission code.
-- Fix:
-
-  ```bash
-  echo 'export MALMO_XSD_PATH="$HOME/MalmoPlatform/Schemas"' >> ~/.zshrc
-  source ~/.zshrc
-  ```
-
-  (Adjust the path if you installed Malmo elsewhere.)
-
-### 6.3 Mission fails to start or times out connecting to client
-
-Symptoms:
-
-- The env hangs on “Waiting for the mission to start…”.
-- The world state never shows `has_mission_begun=True`.
-
-Checklist:
-
-- **Is the Minecraft client with Malmo mod running?**
-  - You should have launched it via `./launchClient.sh` in the `Minecraft` folder of your Malmo install.
-- **Is the host/port correct?**
-  - By default this repo uses `127.0.0.1:10000`. If your client is configured differently, update the env constructor call or mission/client config accordingly.
-- **Did you start multiple conflicting missions?**
-  - Close extra Minecraft windows and try again.
-
-### 6.4 Miscellaneous Java / graphics errors
-
-- Ensure you are using a supported Java version (e.g., Temurin 8).
-- If the Minecraft client crashes on startup, try:
-  - Updating your GPU drivers (via macOS updates).
-  - Redownloading the Malmo zip in case of corruption.
+Run the first notebook cell that sets `workspace` and does `sys.path.insert(0, workspace)`. Ensure your project (with `env/`) is the directory mounted at `/workspace` when you started the container (i.e. you ran `docker run ... -v "$PWD":/workspace` from the repo root).
 
 ---
 
-## 7. Reproducibility tips for teammates
+## 7. Reproducibility
 
-- Always:
-  - Work inside the repo’s Malmo venv (e.g., `.venv_malmo37`) or clearly document if you are using a different environment.
-  - Record the exact commit hash of Malmo you installed (or the release tag).
-  - Write down any deviations from this guide and why.
-
-- When something breaks:
-  - Save the full error message and context.
-  - Note:
-    - macOS version,
-    - Python version,
-    - Java version,
-    - where Malmo is installed (`MALMO_HOME` path) and which zip you used.
-  - Share those details when asking for help so we can reproduce your setup.
-
+- Use the same image: **andkram/malmo** (and note the tag if you pull a specific version).
+- Use the same run command and ports above so teammates get identical port mapping and workspace mount.
+- For experiments, record the image name/tag and the config (e.g. seed, mission XML path) so runs can be reproduced.

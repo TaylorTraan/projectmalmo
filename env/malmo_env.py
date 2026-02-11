@@ -19,12 +19,9 @@ Dependencies:
 - MalmoPython (from Project Malmo)
 """
 
-from __future__ import annotations
-
 import json
 import time
 import uuid
-from dataclasses import dataclass
 from typing import Dict, Optional, Tuple
 
 try:
@@ -39,15 +36,15 @@ except ImportError as exc:  # pragma: no cover - import path depends on local in
 Termination = Tuple[bool, Optional[str]]
 
 
-@dataclass
-class Position:
+class Position(object):
     """Simple container for agent position."""
 
-    x: int
-    z: int
-    y: float
+    def __init__(self, x, z, y):
+        self.x = x
+        self.z = z
+        self.y = y
 
-    def as_dict(self) -> Dict[str, float]:
+    def as_dict(self):
         return {"x": self.x, "z": self.z, "y": self.y}
 
 
@@ -100,12 +97,12 @@ class MalmoGridEnv:
         # Default to a single local client on the standard Malmo port.
         self._client_pool.add(MalmoPython.ClientInfo("127.0.0.1", 10000))
 
-        self._mission_spec: Optional[MalmoPython.MissionSpec] = None
-        self._mission_record_spec: Optional[MalmoPython.MissionRecordSpec] = None
+        self._mission_spec = None  # type: Optional[MalmoPython.MissionSpec]
+        self._mission_record_spec = None  # type: Optional[MalmoPython.MissionRecordSpec]
 
         self._step_count = 0
         self._prev_diamond_count = 0
-        self._last_obs: Optional[Position] = None
+        self._last_obs = None  # type: Optional[Position]
 
     # ------------------------------------------------------------------
     # Public API
@@ -133,7 +130,7 @@ class MalmoGridEnv:
         # mirrors the smoke-test guidance that the mission should be
         # fully started before training begins.
         start_time = time.time()
-        position: Optional[Position] = None
+        position = None  # type: Optional[Position]
         while True:
             world_state = self._agent_host.getWorldState()
             obs_json = self._get_obs_json(world_state)
@@ -143,7 +140,11 @@ class MalmoGridEnv:
                 break
 
             if not world_state.is_mission_running:
-                raise RuntimeError("Mission ended before any observation was received.")
+                err_msg = "Mission ended before any observation was received."
+                if world_state.errors:
+                    err_msg += " Malmo errors: " + ", ".join(e.text for e in world_state.errors)
+                err_msg += " Ensure Minecraft with the Malmo mod is running in noVNC (e.g. http://127.0.0.1:6901) and fully loaded before calling reset()."
+                raise RuntimeError(err_msg)
 
             if time.time() - start_time > self.timeout:
                 raise RuntimeError("Timed out waiting for the first observation after mission start.")
@@ -251,7 +252,7 @@ class MalmoGridEnv:
                 break
             except RuntimeError as exc:
                 if retry == max_retries - 1:
-                    raise RuntimeError(f"Error starting mission: {exc}") from exc
+                    raise RuntimeError("Error starting mission: {}".format(exc)) from exc
                 time.sleep(2.0)
 
     def _wait_for_mission_start(self) -> None:
@@ -266,7 +267,7 @@ class MalmoGridEnv:
             if world_state.errors:
                 # Collect errors for easier debugging.
                 messages = ", ".join(e.text for e in world_state.errors)
-                raise RuntimeError(f"Mission failed to start due to errors: {messages}")
+                raise RuntimeError("Mission failed to start due to errors: {}".format(messages))
 
     def _send_command(self, cmd: str) -> None:
         """Thin wrapper around AgentHost.sendCommand."""
@@ -281,6 +282,25 @@ class MalmoGridEnv:
             time.sleep(0.1)
             world_state = self._agent_host.getWorldState()
         return world_state
+
+    def _action_id_to_commands(self, action_id: int) -> list:
+        """Map discrete action ID to Malmo continuous movement commands.
+
+        Action mapping v0 (must stay in sync with MOVE_* constants and docs):
+        - 0 (North): move 1  (forward)
+        - 1 (South): move -1 (back)
+        - 2 (West):  strafe -1 (left)
+        - 3 (East):  strafe 1  (right)
+        """
+        if action_id == self.MOVE_NORTH:
+            return ["move 1"]
+        if action_id == self.MOVE_SOUTH:
+            return ["move -1"]
+        if action_id == self.MOVE_WEST:
+            return ["strafe -1"]
+        if action_id == self.MOVE_EAST:
+            return ["strafe 1"]
+        raise ValueError("Invalid action_id: {}. Must be 0-3.".format(action_id))
 
     # ------------------------------------------------------------------
     # Internal helpers: observations and termination
@@ -307,7 +327,7 @@ class MalmoGridEnv:
         try:
             return json.loads(latest.text)
         except json.JSONDecodeError as exc:
-            raise RuntimeError(f"Failed to decode Malmo observation JSON: {exc}") from exc
+            raise RuntimeError("Failed to decode Malmo observation JSON: {}".format(exc)) from exc
 
     def _encode_obs(self, obs_json: Optional[Dict]) -> Optional[Position]:
         """Encode raw observation JSON into a Position.
@@ -328,8 +348,8 @@ class MalmoGridEnv:
             z = int(round(float(obs_json["ZPos"])))
         except KeyError as exc:
             raise RuntimeError(
-                f"Expected position keys 'XPos', 'YPos', 'ZPos' in observation, "
-                f"but they were missing: {exc}"
+                "Expected position keys 'XPos', 'YPos', 'ZPos' in observation, "
+                "but they were missing: {}".format(exc)
             ) from exc
 
         return Position(x=x, z=z, y=y)
@@ -352,7 +372,7 @@ class MalmoGridEnv:
                 continue
             slot_prefix = key[:-5]  # strip '_item'
             if value == "diamond":
-                size_key = f"{slot_prefix}_size"
+                size_key = "{}_size".format(slot_prefix)
                 size = int(obs_json.get(size_key, 1))
                 total += size
         return total

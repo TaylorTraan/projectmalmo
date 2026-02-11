@@ -10,8 +10,6 @@ Usage (from repo root, with venv active and Malmo client running):
     python scripts/smoke_test_env.py --episodes 1
 """
 
-from __future__ import annotations
-
 import argparse
 import random
 import sys
@@ -48,30 +46,30 @@ def main() -> int:
 
     mission_path = Path(args.mission)
     if not mission_path.is_file():
-        print(f"[ERROR] Mission file not found: {mission_path}", file=sys.stderr)
+        print("[ERROR] Mission file not found: {}".format(mission_path), file=sys.stderr)
         return 1
 
-    print(f"[INFO] Using mission: {mission_path}")
+    print("[INFO] Using mission: {}".format(mission_path))
 
     try:
         env = MalmoGridEnv(mission_xml_path=str(mission_path), max_steps=args.max_steps)
     except ImportError as exc:
-        print(f"[ERROR] Failed to import MalmoPython: {exc}", file=sys.stderr)
+        print("[ERROR] Failed to import MalmoPython: {}".format(exc), file=sys.stderr)
         print("Hint: ensure Project Malmo is installed and accessible in this venv.")
         return 1
     except Exception as exc:  # pragma: no cover - smoke test entrypoint
-        print(f"[ERROR] Failed to construct MalmoGridEnv: {exc}", file=sys.stderr)
+        print("[ERROR] Failed to construct MalmoGridEnv: {}".format(exc), file=sys.stderr)
         return 1
 
     for episode in range(args.episodes):
-        print(f"\n[INFO] Starting episode {episode}")
+        print("\n[INFO] Starting episode {}".format(episode))
         try:
             obs = env.reset()
         except Exception as exc:  # pragma: no cover - runtime-specific
-            print(f"[ERROR] reset() failed: {exc}", file=sys.stderr)
+            print("[ERROR] reset() failed: {}".format(exc), file=sys.stderr)
             return 1
 
-        print(f"[INFO] Initial observation: {obs}")
+        print("[INFO] Initial observation: {}".format(obs))
 
         done = False
         total_reward = 0.0
@@ -83,7 +81,7 @@ def main() -> int:
             try:
                 obs, reward, done, info = env.step(action)
             except Exception as exc:  # pragma: no cover - runtime-specific
-                print(f"[ERROR] step() failed at step {step}: {exc}", file=sys.stderr)
+                print("[ERROR] step() failed at step {}: {}".format(step, exc), file=sys.stderr)
                 return 1
 
             total_reward += reward
@@ -92,8 +90,9 @@ def main() -> int:
 
             # Keep per-step logging minimal; comment out if noisy.
             print(
-                f"[STEP {step}] action={action} obs={obs} "
-                f"reward={reward} done={done} reason={info.get('termination_reason')}"
+                "[STEP {}] action={} obs={} reward={} done={} reason={}".format(
+                    step, action, obs, reward, done, info.get("termination_reason")
+                )
             )
 
         term_reason = last_info.get("termination_reason")
@@ -101,11 +100,9 @@ def main() -> int:
         position = last_info.get("position")
 
         print(
-            f"[EPISODE SUMMARY] episode={episode} "
-            f"total_reward={total_reward} "
-            f"termination_reason={term_reason} "
-            f"position={position} "
-            f"diamond_count={diamond_count}"
+            "[EPISODE SUMMARY] episode={} total_reward={} termination_reason={} position={} diamond_count={}".format(
+                episode, total_reward, term_reason, position, diamond_count
+            )
         )
 
     return 0
