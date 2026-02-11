@@ -61,43 +61,14 @@ The success of this project is measured by **insight and explanation**, not by b
 
 ## Minimal Malmo Environment Wrapper
 
-We provide a small Gym-like wrapper around a Project Malmo mission for a discrete grid platform task where the agent must pick up a diamond without falling off.
+The wrapper exposes **reset()** and **step(action)**; all Malmo logic lives in `env/` (`env/malmo_env.py`, `env/mission.xml`). Use the same pattern for any agent: create env, call **reset()**, then loop **step()** until done.
 
-- **Wrapper class**: `MalmoGridEnv` in `env/malmo_env.py`
-- **Mission XML**: `env/mission.xml` (simple platform; includes TODOs where course-specific diamond placement can be added)
-- **Smoke test script**: `scripts/smoke_test_env.py`
-
-### Example usage
-
-From the repo root, with your virtual environment active and the Malmo Minecraft client running:
-
-```python
-from env.malmo_env import MalmoGridEnv
-
-env = MalmoGridEnv(mission_xml_path="env/mission.xml", max_steps=200)
-
-obs = env.reset()  # initial observation: {"x": int, "z": int, "y": float}
-done = False
-total_reward = 0.0
-
-while not done:
-    # v0 discrete actions: 0=N, 1=S, 2=W, 3=E
-    action = 0  # e.g., always move north; replace with a policy / random
-    obs, reward, done, info = env.step(action)
-    total_reward += reward
-
-print("Episode finished.")
-print("Total reward:", total_reward)
-print("Termination reason:", info.get("termination_reason"))
-print("Final position:", info.get("position"))
-print("Diamond count:", info.get("diamond_count"))
-```
-
-To run the full smoke test (random policy, small number of episodes):
+**Run the smoke test** from `/workspace` inside the container with Minecraft running in noVNC:
 
 ```bash
-python scripts/smoke_test_env.py --episodes 1
+cd /workspace
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1
 ```
 
-For detailed setup instructions (Malmo install, virtualenv, troubleshooting), see `docs/MALMO_SETUP.md`.
+Setup and workflow: see [docs/MALMO_SETUP.md](docs/MALMO_SETUP.md).
 

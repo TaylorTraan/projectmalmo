@@ -1,8 +1,18 @@
 ## Malmo Setup (Docker) for CS175
 
-This guide uses **Docker only** to run Project Malmo. The container provides a Linux desktop (noVNC), Minecraft with the Malmo mod, Python/Malmo bindings, and Jupyter. No native macOS install of Malmo or Java is required.
+### Malmo setup & workflow (summary)
 
-The goal is **reproducibility**: everyone can use the same image and run command to get the same behavior.
+We wrapped Project Malmo in a simple environment interface so the rest of the code never talks to Minecraft directly. The environment exposes **reset()** (start a mission and return the first observation) and **step(action)** (take one action and return observation, reward, done, and info). All Malmo- and Minecraft-specific logic lives in `env/malmo_env.py` and `env/mission.xml`, which keeps agents and training code clean and consistent.
+
+The smoke test (`scripts/smoke_test_env.py`) demonstrates the standard usage pattern: create the environment, call **reset()**, repeatedly call **step()** until done, then print a summary. This same loop structure is used for agents and training.
+
+Everything runs inside Docker using Python 3.5, so the code avoids modern features (no f-strings, dataclasses, or variable type annotations). Scripts are run from the project root as modules so imports work, and **PYTHONPATH** is set so Python can find the Malmo bindings.
+
+To run the smoke test: start the container, make sure Minecraft is open in noVNC, then run `python3 -m scripts.smoke_test_env` from `/workspace` with the Malmo path added to PYTHONPATH. A successful run prints an initial observation, step outputs, and an episode summary with no errors.
+
+---
+
+This guide uses **Docker only** to run Project Malmo. The container provides a Linux desktop (noVNC), Minecraft with the Malmo mod, Python/Malmo bindings, and Jupyter. No native macOS install of Malmo or Java is required. The goal is **reproducibility**: everyone can use the same image and run command to get the same behavior.
 
 ---
 
@@ -75,14 +85,14 @@ The first time you call `env.reset()`, a mission starts and Python connects to M
 
 ## 5. Running the smoke test (inside the container)
 
-If you open a **shell inside the running container** (e.g. from Jupyter: New → Terminal, or `docker exec` from the host), you can run the project smoke test from the workspace:
+Open a **shell inside the running container** (e.g. from Jupyter: New → Terminal, or `docker exec` from the host). Ensure Minecraft is open and fully loaded in noVNC, then from `/workspace` run:
 
 ```bash
 cd /workspace
-python scripts/smoke_test_env.py --episodes 1
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1
 ```
 
-You should see the script create `MalmoGridEnv`, run one episode (e.g. with random actions), and print a termination reason. Minecraft must be running in the noVNC desktop for the mission to start.
+A successful run prints an initial observation, step lines, and an episode summary with no errors.
 
 ---
 
@@ -104,8 +114,12 @@ This means the mission started from Python’s side but the game closed or never
 1. Open noVNC in your browser: http://127.0.0.1:6901 and log in (password often `vncpassword` or `malmo`).
 2. In the desktop, make sure **Minecraft is running** and has **fully loaded** (main menu or world visible, Malmo mod loaded). If it isn’t running, start it from the desktop (e.g. double‑click the Minecraft launcher or icon).
 3. Wait until Minecraft is idle and ready (no “Loading…” or crash).
-4. From the terminal (with `PYTHONPATH` set as before), run the smoke test again:  
-   `python3 -m scripts.smoke_test_env --episodes 1`
+4. From the terminal, run the smoke test again (full command so Malmo is on PYTHONPATH):
+
+   ```bash
+   cd /workspace
+   PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1
+   ```
 
 If Minecraft was already running, try closing any in‑game world, returning to the main menu, then running the script again. Only one mission can use the client at a time.
 
@@ -121,6 +135,5 @@ Run the first notebook cell that sets `workspace` and does `sys.path.insert(0, w
 
 ## 7. Reproducibility
 
-- Use the same image: **andkram/malmo** (and note the tag if you pull a specific version).
-- Use the same run command and ports above so teammates get identical port mapping and workspace mount.
-- For experiments, record the image name/tag and the config (e.g. seed, mission XML path) so runs can be reproduced.
+- Use the same image (**andkram/malmo**) and run command so port mapping and workspace mount match.
+- For experiments, record the image tag and config (e.g. seed, mission XML path).
