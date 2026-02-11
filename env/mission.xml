@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Mission xmlns="http://ProjectMalmo.microsoft.com"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://ProjectMalmo.microsoft.com Schemas/Mission.xsd">
+
+  <About>
+    <Summary>CS175 minimal grid platform mission (diamond pickup)</Summary>
+  </About>
+
+  <ServerSection>
+    <ServerInitialConditions>
+      <Time>
+        <StartTime>6000</StartTime>
+        <AllowPassageOfTime>false</AllowPassageOfTime>
+      </Time>
+      <Weather>clear</Weather>
+    </ServerInitialConditions>
+
+    <ServerHandlers>
+      <FlatWorldGenerator generatorString="3;7,2*3,2;1;"/>
+
+      <DrawingDecorator>
+        <!-- Platform: 7x7 at Y=4 centered at (0,0) -->
+        <DrawCuboid x1="-3" y1="4" z1="-3" x2="3" y2="4" z2="3" type="stone"/>
+        <DrawBlock x="0" y="4" z="0" type="gold_block"/>
+
+        <!-- Spawn a diamond ITEM to pick up (place slightly above platform) -->
+        <DrawItem x="2" y="5" z="2" type="diamond"/>
+      </DrawingDecorator>
+
+      <!-- End the mission if agent finishes OR after time limit -->
+      <ServerQuitWhenAnyAgentFinishes/>
+      <ServerQuitFromTimeUp timeLimitMs="60000"/>
+    </ServerHandlers>
+  </ServerSection>
+
+  <AgentSection mode="Survival">
+    <Name>CS175Agent</Name>
+
+    <AgentStart>
+      <Placement x="0.5" y="5" z="0.5" yaw="0"/>
+    </AgentStart>
+
+    <AgentHandlers>
+      <!-- Use continuous controls since your wrapper sends move/strafe -->
+      <ContinuousMovementCommands/>
+
+      <!-- Needed for XPos/YPos/ZPos and InventorySlot_* keys -->
+      <ObservationFromFullStats/>
+
+      <!-- Optional but helpful: end mission immediately on pickup -->
+      <AgentQuitFromCollectingItem>
+        <Item type="diamond"/>
+      </AgentQuitFromCollectingItem>
+
+      <!-- (Optional) allow programmatic quit commands -->
+      <MissionQuitCommands/>
+    </AgentHandlers>
+  </AgentSection>
+
+</Mission>
