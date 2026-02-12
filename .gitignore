@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Local Python environments
+env/
+venv/
+.venv/
+
+# macOS metadata
+.DS_Store
