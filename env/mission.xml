@@ -20,12 +20,20 @@
       <FlatWorldGenerator generatorString="3;7,2*3,2;1;"/>
 
       <DrawingDecorator>
-        <!-- Platform: 7x7 at Y=4 centered at (0,0) -->
-        <DrawCuboid x1="-3" y1="4" z1="-3" x2="3" y2="4" z2="3" type="stone"/>
-        <DrawBlock x="0" y="4" z="0" type="gold_block"/>
+        <!-- Obsidian bridge: 5 (width, X) x 10 (length, Z) at Y=4 -->
+        <!-- X in [-2, 2], Z in [0, 9] -->
+        <DrawCuboid x1="-2" y1="50" z1="0" x2="2" y2="50" z2="9" type="obsidian"/>
 
-        <!-- Spawn a diamond ITEM to pick up (place slightly above platform) -->
-        <DrawItem x="2" y="5" z="2" type="diamond"/>
+        <!-- Clear space ABOVE the bridge only (keep obsidian at y=4 intact) -->
+        <DrawCuboid x1="-4" y1="5" z1="-2" x2="4" y2="5" z2="11" type="air"/>
+
+        <!-- Lava below and around the bridge so falling off leads to lava -->
+        <!-- Make the lava fill a full 16x16 chunk around the bridge at Y=2 -->
+        <!-- Chunk centered on the bridge: X in [-8, 7], Z in [-8, 7] -->
+        <DrawCuboid x1="-50" y1="5" z1="-50" x2="50" y2="5" z2="50" type="lava"/>
+
+        <!-- Diamond item in the center of the last row of the bridge -->
+        <DrawItem x="0" y="51" z="9" type="diamond"/>
       </DrawingDecorator>
 
       <!-- End the mission if agent finishes OR after time limit -->
@@ -38,7 +46,7 @@
     <Name>CS175Agent</Name>
 
     <AgentStart>
-      <Placement x="0.5" y="5" z="0.5" yaw="0"/>
+      <Placement x="0.5" y="51" z="0.5" yaw="0"/>
     </AgentStart>
 
     <AgentHandlers>
