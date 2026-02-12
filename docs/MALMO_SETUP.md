@@ -123,6 +123,10 @@ This means the mission started from Python’s side but the game closed or never
 
 If Minecraft was already running, try closing any in‑game world, returning to the main menu, then running the script again. Only one mission can use the client at a time.
 
+### Mission ends after 1 step (`malmo_mission_ended_early`)
+
+The mission uses **Creative mode** to avoid agent death, which can cause the mission to end immediately in Survival. If you need Survival for experiments, ensure the spawn is safe and consider removing or adjusting `ServerQuitWhenAnyAgentFinishes` in `env/mission.xml`.
+
 ### Can’t log in to noVNC
 
 Try the VNC password **`vncpassword`** or **`malmo`** (depends on the image).

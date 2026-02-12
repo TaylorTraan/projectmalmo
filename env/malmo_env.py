@@ -81,7 +81,7 @@ class MalmoGridEnv:
         mission_xml_path: str,
         max_steps: int = 200,
         move_ticks: int = 4,
-        platform_y: float = 4.0,
+        platform_y: float = 51,
         timeout: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> None:
