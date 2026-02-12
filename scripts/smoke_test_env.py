@@ -11,11 +11,16 @@ Usage (from repo root, with venv active and Malmo client running):
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
 from env.malmo_env import MalmoGridEnv
-from harness import run_episodes
+from harness import (
+    run_episodes,
+    save_episode_stats_csv,
+    save_episode_stats_json,
+)
 from harness.agents import RandomAgent
 
 
@@ -44,6 +49,13 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=42,
         help="Random seed for reproducibility (default: 42).",
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default=None,
+        metavar="DIR",
+        help="If set, write episode logs (CSV and JSON) to DIR.",
     )
     return parser.parse_args()
 
@@ -87,6 +99,15 @@ def main() -> int:
                 s.episode, s.total_reward, s.steps, s.success, s.termination_reason, s.seed
             )
         )
+
+    if args.log_dir:
+        log_dir = args.log_dir
+        os.makedirs(log_dir, exist_ok=True)
+        csv_path = os.path.join(log_dir, "episodes.csv")
+        json_path = os.path.join(log_dir, "episodes.json")
+        save_episode_stats_csv(stats_list, csv_path)
+        save_episode_stats_json(stats_list, json_path)
+        print("[INFO] Logs written to {} and {}".format(csv_path, json_path))
 
     return 0
 

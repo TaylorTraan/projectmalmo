@@ -12,3 +12,6 @@ venv/
 
 # macOS metadata
 .DS_Store
+
+//logging
+runs/

@@ -1,0 +1,2 @@
+episode,total_reward,steps,success,termination_reason,seed
+0,0.0,1,0,malmo_mission_ended_early,42
