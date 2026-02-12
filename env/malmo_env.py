@@ -20,6 +20,7 @@ Dependencies:
 """
 
 import json
+import sys
 import time
 import uuid
 from typing import Dict, Optional, Tuple
@@ -186,6 +187,12 @@ class MalmoGridEnv:
             diamond_increase=diamond_increase,
             world_state=world_state,
         )
+        if reason == "malmo_mission_ended_early":
+            if world_state.errors:
+                for err in world_state.errors:
+                    sys.stderr.write("[Malmo] {}\n".format(err.text))
+            else:
+                sys.stderr.write("[Malmo] Mission ended early (no error messages from Malmo).\n")
         # Handle the "no observation yet" case explicitly when the mission
         # is still running: reuse last observation, zero reward, not done,
         # and mark the info dict accordingly.
@@ -234,7 +241,10 @@ class MalmoGridEnv:
         self._mission_spec = MalmoPython.MissionSpec(mission_xml, True)
         # Request full stats so we can read inventory/position.
         self._mission_spec.requestVideo(320, 240)  # harmless even if unused
-        self._mission_spec.timeLimitInSeconds(float(self.max_steps * 0.1))
+        # Mission time limit: scale with max_steps (allow ~2s per step), with a 1-hour floor.
+        # Some Malmo builds may interpret the unit differently; the floor avoids early termination.
+        mission_time_limit = max(3600.0, float(self.max_steps * 2))
+        self._mission_spec.timeLimitInSeconds(mission_time_limit)
 
         self._mission_record_spec = MalmoPython.MissionRecordSpec()
 

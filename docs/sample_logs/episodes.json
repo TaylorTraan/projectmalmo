@@ -1,0 +1,10 @@
+[
+  {
+    "episode": 0,
+    "total_reward": 0.0,
+    "steps": 1,
+    "success": 0,
+    "termination_reason": "malmo_mission_ended_early",
+    "seed": 42
+  }
+]

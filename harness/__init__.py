@@ -16,10 +16,18 @@ Agent protocol:
 """
 
 from harness.agent_protocol import has_observe
+from harness.logging import (
+    create_run_directory,
+    save_episode_stats_csv,
+    save_episode_stats_json,
+)
 from harness.loop import EpisodeStats, run_episodes
 
 __all__ = [
     "EpisodeStats",
+    "create_run_directory",
     "has_observe",
     "run_episodes",
+    "save_episode_stats_csv",
+    "save_episode_stats_json",
 ]

@@ -8,7 +8,7 @@ The smoke test (`scripts/smoke_test_env.py`) demonstrates the standard usage pat
 
 Everything runs inside Docker using Python 3.5, so the code avoids modern features (no f-strings, dataclasses, or variable type annotations). Scripts are run from the project root as modules so imports work, and **PYTHONPATH** is set so Python can find the Malmo bindings.
 
-To run the smoke test: start the container, make sure Minecraft is open in noVNC, then run `python3 -m scripts.smoke_test_env` from `/workspace` with the Malmo path added to PYTHONPATH. A successful run prints an initial observation, step outputs, and an episode summary with no errors.
+To run the smoke test: start the container, make sure Minecraft is open in noVNC, then run `python3 -m scripts.smoke_test_env` from `/workspace` with the Malmo path added to PYTHONPATH. Optionally use `--log-dir DIR` to write episode logs (CSV and JSON) to a directory. A successful run prints an episode summary per episode with no errors.
 
 ---
 
@@ -92,7 +92,31 @@ cd /workspace
 PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1
 ```
 
-A successful run prints an initial observation, step lines, and an episode summary with no errors.
+A successful run prints an episode summary per episode (total reward, steps, success, termination reason, seed) with no errors.
+
+### With logging
+
+To write episode logs to CSV and JSON, pass `--log-dir` with a directory path. The script creates that directory (if needed) and writes `episodes.csv` and `episodes.json` there. Each new run to the same directory **overwrites** those files.
+
+**One episode, logs in `runs/smoke_test`:**
+
+```bash
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1 --log-dir runs/smoke_test
+```
+
+**Five episodes, same log directory (overwrites previous):**
+
+```bash
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 5 --log-dir runs/smoke_test
+```
+
+**Three episodes, logs in a timestamped-style run folder:**
+
+```bash
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 3 --log-dir runs/02122026_random_agent_seed42
+```
+
+After each run with `--log-dir`, the script prints the paths to the written files (e.g. `[INFO] Logs written to runs/smoke_test/episodes.csv and runs/smoke_test/episodes.json`).
 
 ---
 
