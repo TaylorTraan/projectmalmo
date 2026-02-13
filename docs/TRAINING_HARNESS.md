@@ -52,7 +52,7 @@ class RandomAgent:
         return self._rng.randint(0, 3)
 ```
 
-This agent does not implement `observe`; it is suitable for non-learning baselines.
+This agent does not implement `observe`; it is the **no-learning baseline** used to compare whether learning algorithms improve behavior beyond chance. See `harness.agents.RandomAgent`.
 
 ---
 
@@ -142,3 +142,12 @@ The environment sets `info["termination_reason"]`; common values:
 - **Actions**: 0=North, 1=South, 2=West, 3=East.
 
 See [MALMO_SETUP.md](MALMO_SETUP.md) for environment details.
+
+---
+
+## Baseline runs
+
+To run the random policy baseline for a fixed number of episodes and log results under `runs/`, use the config-driven script and then summarize the run. See [BASELINE_RUNS.md](BASELINE_RUNS.md) for:
+
+- Running the baseline: `python scripts/run_random_baseline.py --config configs/random_baseline.json`
+- Summarizing a run: `python scripts/summarize_run.py runs/<run_dir>`

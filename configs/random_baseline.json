@@ -1,0 +1,7 @@
+{
+  "config_name": "random_baseline",
+  "num_episodes": 50,
+  "seed": 42,
+  "max_steps": 200,
+  "mission_xml_path": "env/mission.xml"
+}
