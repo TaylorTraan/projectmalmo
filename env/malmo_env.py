@@ -242,9 +242,10 @@ class MalmoGridEnv:
         # Request full stats so we can read inventory/position.
         self._mission_spec.requestVideo(320, 240)  # harmless even if unused
         # Mission time limit: scale with max_steps (allow ~2s per step), with a 1-hour floor.
-        # Some Malmo builds may interpret the unit differently; the floor avoids early termination.
-        mission_time_limit = max(3600.0, float(self.max_steps * 2))
-        self._mission_spec.timeLimitInSeconds(mission_time_limit)
+        # Note: timeLimitInSeconds() is misnamed in this Malmo build—it expects milliseconds.
+        mission_time_limit_sec = max(3600.0, float(self.max_steps * 2))
+        mission_time_limit_ms = int(mission_time_limit_sec * 1000)
+        self._mission_spec.timeLimitInSeconds(mission_time_limit_ms)
 
         self._mission_record_spec = MalmoPython.MissionRecordSpec()
 
