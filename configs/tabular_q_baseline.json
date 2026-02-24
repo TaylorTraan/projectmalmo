@@ -1,0 +1,17 @@
+{
+  "config_name": "tabular_q_baseline",
+  "num_episodes": 200,
+  "seed": 42,
+  "max_steps": 200,
+  "mission_xml_path": "env/mission.xml",
+  "env_version": "v0",
+  "obs_version": "v0",
+  "action_version": "v0",
+  "learning_rate": 0.1,
+  "discount": 0.99,
+  "epsilon_schedule": "linear_decay",
+  "epsilon": 0.1,
+  "epsilon_start": 0.5,
+  "epsilon_end": 0.05,
+  "epsilon_decay_episodes": 150
+}

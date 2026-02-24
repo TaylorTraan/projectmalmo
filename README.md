@@ -70,5 +70,5 @@ cd /workspace
 PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.smoke_test_env --episodes 1
 ```
 
-Setup and workflow: see [docs/MALMO_SETUP.md](docs/MALMO_SETUP.md).
+Setup and workflow: see [docs/MALMO_SETUP.md](docs/MALMO_SETUP.md). Experiments are config-driven; see [docs/EXPERIMENT_CONFIG.md](docs/EXPERIMENT_CONFIG.md) for reproducibility and config details.
 

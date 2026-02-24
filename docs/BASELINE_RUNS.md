@@ -1,5 +1,7 @@
 # Random Baseline Runs
 
+For full reproducibility and config details, see [docs/EXPERIMENT_CONFIG.md](EXPERIMENT_CONFIG.md).
+
 The random policy agent selects actions uniformly at random from the discrete action space (0–3) at every time step. It does not use observations, memory, or learning. Running it for a fixed number of episodes produces a **baseline** that can be compared with learning agents to see whether and how learning improves behavior.
 
 ---
@@ -27,6 +29,28 @@ Override config from the command line if needed:
 ```bash
 PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 scripts/run_random_baseline.py --config configs/random_baseline.json --num-episodes 20 --seed 0
 ```
+
+---
+
+## Running the tabular Q-learning baseline
+
+The tabular Q-learning agent learns an action-value table over the discrete grid state (x, z) using epsilon-greedy exploration and Bellman updates. Use it to test whether the environment provides a meaningful learning signal: if Q-learning improves over the random baseline, the reward and observation design are viable.
+
+From the repo root (with Malmo client running and environment set up):
+
+```bash
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.run_tabular_q --config configs/tabular_q_baseline.json
+```
+
+Config fields (in `configs/tabular_q_baseline.json`): `learning_rate` (alpha), `discount` (gamma), `epsilon_schedule` (`"constant"` or `"linear_decay"`), and for linear decay: `epsilon_start`, `epsilon_end`, `epsilon_decay_episodes`. For constant epsilon, use `epsilon`.
+
+Override from the command line:
+
+```bash
+PYTHONPATH="/home/malmo/MalmoPlatform/scripts/python-wheel/backwards-compatible-imports:$PYTHONPATH" python3 -m scripts.run_tabular_q --config configs/tabular_q_baseline.json --num-episodes 300 --seed 0
+```
+
+Results go to `runs/YYYYMMDD_HHMMSS_tabular_q_baseline_seed42/`. Summarize with `summarize_run.py` the same way as the random baseline.
 
 ---
 
