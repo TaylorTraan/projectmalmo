@@ -3,5 +3,8 @@
   "num_episodes": 50,
   "seed": 42,
   "max_steps": 200,
-  "mission_xml_path": "env/mission.xml"
+  "mission_xml_path": "env/mission.xml",
+  "env_version": "v0",
+  "obs_version": "v0",
+  "action_version": "v0"
 }
