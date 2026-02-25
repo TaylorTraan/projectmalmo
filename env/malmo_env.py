@@ -117,6 +117,7 @@ class MalmoGridEnv:
         self._prev_diamond_count = 0
         self._last_obs = None  # type: Optional[Position]
         self._prev_reward_position = None  # type: Optional[Dict[str, float]]
+        self._episode_reward_from_malmo = 0.0
 
     # ------------------------------------------------------------------
     # Public API
@@ -139,6 +140,7 @@ class MalmoGridEnv:
         self._prev_diamond_count = 0
         self._last_obs = None
         self._prev_reward_position = None
+        self._episode_reward_from_malmo = 0.0
 
         # Wait for the first valid observation so that we don't return a
         # None position and explode with an attribute error. This also
@@ -184,13 +186,15 @@ class MalmoGridEnv:
         # Send movement command(s) for `move_ticks`, then stop.
         for cmd in action_cmds:
             self._send_command(cmd)
-        world_state = self._wait_ticks(self.move_ticks)
+        world_state, malmo_reward_this_step = self._wait_ticks(self.move_ticks)
         # Explicitly stop motion to avoid continuous drift.
         self._send_command("move 0")
         self._send_command("strafe 0")
 
         obs_json = self._get_obs_json(world_state)
         position = self._encode_obs(obs_json)
+
+        self._episode_reward_from_malmo += malmo_reward_this_step
 
         diamond_count = self._get_diamond_count(obs_json) if obs_json is not None else 0
         diamond_increase = diamond_count > self._prev_diamond_count
@@ -201,8 +205,11 @@ class MalmoGridEnv:
             obs_json=obs_json,
             diamond_increase=diamond_increase,
             world_state=world_state,
+            episode_reward_from_malmo=self._episode_reward_from_malmo,
         )
-        if reason == "malmo_mission_ended_early":
+        if reason == "success_diamond_picked_up":
+            sys.stderr.write("[Malmo] Diamond picked up (success).\n")
+        elif reason == "malmo_mission_ended_early":
             if world_state.errors:
                 for err in world_state.errors:
                     sys.stderr.write("[Malmo] {}\n".format(err.text))
@@ -230,7 +237,9 @@ class MalmoGridEnv:
             done=done,
             termination_reason=reason,
         )
-        reward, reward_components = self._reward.compute(ctx)
+        reward_from_scheme, reward_components = self._reward.compute(ctx)
+        # When success is from Malmo reward (diamond collected), use that reward.
+        reward = min(malmo_reward_this_step, 1.0) if reason == "success_diamond_picked_up" else reward_from_scheme
         if position_dict is not None:
             self._prev_reward_position = position_dict
 
@@ -312,15 +321,21 @@ class MalmoGridEnv:
         """Thin wrapper around AgentHost.sendCommand."""
         self._agent_host.sendCommand(cmd)
 
-    def _wait_ticks(self, n: int) -> MalmoPython.WorldState:
-        """Wait approximately `n` ticks, polling world_state."""
-        # Tick duration is mission-specific; we use a small sleep and
-        # just poll a fixed number of times as a minimal approach.
+    def _wait_ticks(self, n: int) -> Tuple[MalmoPython.WorldState, float]:
+        """Wait approximately `n` ticks, polling world_state.
+
+        Returns the final world_state and the total Malmo reward accumulated
+        across all polls.  Malmo rewards are consumed on read, so we must
+        sum them here to avoid losing mid-tick rewards (e.g. diamond pickup).
+        """
+        accumulated_reward = 0.0
         world_state = self._agent_host.getWorldState()
+        accumulated_reward += self._get_malmo_reward(world_state)
         for _ in range(n):
             time.sleep(0.1)
             world_state = self._agent_host.getWorldState()
-        return world_state
+            accumulated_reward += self._get_malmo_reward(world_state)
+        return world_state, accumulated_reward
 
     def _action_id_to_commands(self, action_id: int) -> list:
         """Map discrete action ID to Malmo continuous movement commands.
@@ -416,16 +431,35 @@ class MalmoGridEnv:
                 total += size
         return total
 
+    def _get_malmo_reward(self, world_state: MalmoPython.WorldState) -> float:
+        """Sum reward values from Malmo world_state.rewards (e.g. RewardForCollectingItem)."""
+        total = 0.0
+        if hasattr(world_state, "rewards") and world_state.rewards:
+            for r in world_state.rewards:
+                total += float(r.getValue())
+        return total
+
     def _check_done(
         self,
         obs_json: Optional[Dict],
         diamond_increase: bool,
         world_state: MalmoPython.WorldState,
+        episode_reward_from_malmo: float = 0.0,
     ) -> Termination:
-        """Return (done, termination_reason) based on env rules."""
-        # Success: diamond picked up.
-        if diamond_increase:
+        """Return (done, termination_reason) based on env rules.
+
+        Success is determined by Malmo reward (e.g. RewardForCollectingItem +1),
+        not inventory observation.
+        """
+        # Success if any positive Malmo reward has been received
+        if episode_reward_from_malmo > 0:
             return True, "success_diamond_picked_up"
+
+        # Mission ended without reward → failure
+        if not world_state.is_mission_running:
+            if episode_reward_from_malmo > 0:
+                return True, "success_diamond_picked_up"
+            return True, "malmo_mission_ended_early"
 
         # Timeout on step count.
         if self._step_count >= self.max_steps:
@@ -440,10 +474,6 @@ class MalmoGridEnv:
             except KeyError:
                 # If YPos is missing we cannot make a fall decision here.
                 pass
-
-        # Mission ended unexpectedly before other conditions.
-        if not world_state.is_mission_running:
-            return True, "malmo_mission_ended_early"
 
         return False, None
 

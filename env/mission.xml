@@ -17,7 +17,7 @@
     </ServerInitialConditions>
 
     <ServerHandlers>
-      <FlatWorldGenerator generatorString="3;7,2*3,2;1;"/>
+      <FlatWorldGenerator generatorString="3;7,2*3,2;1;" forceReset="true"/>
 
       <DrawingDecorator>
         <!-- Obsidian bridge: 5 (width, X) x 10 (length, Z) at Y=4 -->
@@ -56,7 +56,12 @@
       <!-- Needed for XPos/YPos/ZPos and InventorySlot_* keys -->
       <ObservationFromFullStats/>
 
-      <!-- Optional but helpful: end mission immediately on pickup -->
+      <!-- +1 reward when diamond is collected (before quit) -->
+      <RewardForCollectingItem>
+        <Item type="diamond" reward="1"/>
+      </RewardForCollectingItem>
+
+      <!-- End mission immediately on pickup -->
       <AgentQuitFromCollectingItem>
         <Item type="diamond"/>
       </AgentQuitFromCollectingItem>
