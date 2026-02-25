@@ -13,9 +13,12 @@ All experiment configurations in this project share a common structure. This doc
 | `seed` | int | Random seed for reproducibility |
 | `max_steps` | int | Maximum environment steps per episode |
 | `mission_xml_path` | string | Path to mission XML (e.g. `env/mission.xml`) |
-| `env_version` | string | Version tag for mission + reward (e.g. `v0`); see env/malmo_env.py |
+| `env_version` | string | Version tag for mission + termination semantics (e.g. `v0`); see env/malmo_env.py |
 | `obs_version` | string | Version tag for observation format (e.g. `v0`); see docs/TRAINING_HARNESS.md |
 | `action_version` | string | Version tag for action mapping (e.g. `v0`); 0=N, 1=S, 2=W, 3=E |
+| `reward_scheme` | string | Reward variant name (e.g. `sparse_v0`, `step_penalty_v1`, `distance_shaping_v1`); see env/reward_schemes.py |
+| `reward_params` | object | Optional scheme-specific parameters (e.g. `step_penalty`, `fall_penalty`, `distance_scale`) |
+| `log_reward_components` | bool | If true, env adds `info["reward_components"]` (per-step) with a breakdown of reward terms |
 
 ---
 

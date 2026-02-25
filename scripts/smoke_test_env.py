@@ -11,6 +11,7 @@ Usage (from repo root, with venv active and Malmo client running):
 """
 
 import argparse
+import json
 import os
 import sys
 from pathlib import Path
@@ -51,6 +52,23 @@ def parse_args() -> argparse.Namespace:
         help="Random seed for reproducibility (default: 42).",
     )
     parser.add_argument(
+        "--reward-scheme",
+        type=str,
+        default="sparse_v0",
+        help="Reward scheme name (default: sparse_v0).",
+    )
+    parser.add_argument(
+        "--reward-params",
+        type=str,
+        default="{}",
+        help="JSON object string for reward params (default: {}).",
+    )
+    parser.add_argument(
+        "--log-reward-components",
+        action="store_true",
+        help="If set, include info['reward_components'] in output when available.",
+    )
+    parser.add_argument(
         "--log-dir",
         type=str,
         default=None,
@@ -69,9 +87,26 @@ def main() -> int:
         return 1
 
     print("[INFO] Using mission: {}".format(mission_path))
+    print("[INFO] reward_scheme={} log_reward_components={}".format(
+        args.reward_scheme, args.log_reward_components
+    ))
+    try:
+        reward_params = json.loads(args.reward_params)
+    except Exception as exc:
+        print("[ERROR] --reward-params must be a JSON object string: {}".format(exc), file=sys.stderr)
+        return 1
+    if not isinstance(reward_params, dict):
+        print("[ERROR] --reward-params must decode to a JSON object (dict).", file=sys.stderr)
+        return 1
 
     try:
-        env = MalmoGridEnv(mission_xml_path=str(mission_path), max_steps=args.max_steps)
+        env = MalmoGridEnv(
+            mission_xml_path=str(mission_path),
+            max_steps=args.max_steps,
+            reward_scheme=args.reward_scheme,
+            reward_params=reward_params,
+            log_reward_components=args.log_reward_components,
+        )
     except ImportError as exc:
         print("[ERROR] Failed to import MalmoPython: {}".format(exc), file=sys.stderr)
         print("Hint: ensure Project Malmo is installed and accessible in this venv.")
@@ -83,19 +118,45 @@ def main() -> int:
     agent = RandomAgent(seed=args.seed)
 
     try:
-        stats_list = run_episodes(
-            env=env,
-            agent=agent,
-            num_episodes=args.episodes,
-            seed=args.seed,
-        )
+        # For reward debugging, we print per-step traces for the first episode.
+        # The harness remains the recommended path for proper logging.
+        obs = env.reset(seed=args.seed)
+        info = {}
+        done = False
+        step_idx = 0
+        total_reward = 0.0
+        while not done:
+            action = agent.select_action(obs, info)
+            next_obs, reward, done, info = env.step(action)
+            total_reward += reward
+            step_idx += 1
+            if step_idx <= 10 or done:
+                msg = "[STEP] i={} action={} pos={} reward={} done={} reason={}".format(
+                    info.get("step_index"),
+                    action,
+                    info.get("position"),
+                    reward,
+                    done,
+                    info.get("termination_reason"),
+                )
+                if args.log_reward_components and "reward_components" in info:
+                    msg += " reward_components={}".format(info.get("reward_components"))
+                print(msg)
+            obs = next_obs
+
+        print("\n[EPISODE SUMMARY] total_reward={} steps={} termination_reason={} seed={}".format(
+            total_reward, step_idx, info.get("termination_reason"), args.seed
+        ))
+
+        # Still run the harness afterward to ensure nothing crashes.
+        stats_list = run_episodes(env=env, agent=agent, num_episodes=args.episodes, seed=args.seed)
     except Exception as exc:  # pragma: no cover - runtime-specific
-        print("[ERROR] run_episodes failed: {}".format(exc), file=sys.stderr)
+        print("[ERROR] smoke test failed: {}".format(exc), file=sys.stderr)
         return 1
 
     for s in stats_list:
         print(
-            "\n[EPISODE SUMMARY] episode={} total_reward={} steps={} success={} termination_reason={} seed={}".format(
+            "[HARNESS SUMMARY] episode={} total_reward={} steps={} success={} termination_reason={} seed={}".format(
                 s.episode, s.total_reward, s.steps, s.success, s.termination_reason, s.seed
             )
         )

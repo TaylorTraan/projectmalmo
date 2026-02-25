@@ -8,7 +8,7 @@ All experiments in this project are driven by configuration files. Configs speci
 
 See [configs/SCHEMA.md](../configs/SCHEMA.md) for the full config structure. Summary:
 
-- **Common fields** (all configs): `config_name`, `num_episodes`, `seed`, `max_steps`, `mission_xml_path`, `env_version`, `obs_version`, `action_version`
+- **Common fields** (all configs): `config_name`, `num_episodes`, `seed`, `max_steps`, `mission_xml_path`, `env_version`, `obs_version`, `action_version`, `reward_scheme`, `reward_params`, `log_reward_components`
 - **Tabular Q-learning** adds: `learning_rate`, `discount`, `epsilon_schedule`, `epsilon`, `epsilon_start`, `epsilon_end`, `epsilon_decay_episodes`
 
 ---

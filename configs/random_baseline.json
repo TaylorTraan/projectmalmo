@@ -6,5 +6,8 @@
   "mission_xml_path": "env/mission.xml",
   "env_version": "v0",
   "obs_version": "v0",
-  "action_version": "v0"
+  "action_version": "v0",
+  "reward_scheme": "sparse_v0",
+  "reward_params": {},
+  "log_reward_components": false
 }

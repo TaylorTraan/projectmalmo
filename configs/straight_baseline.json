@@ -1,0 +1,14 @@
+{
+    "config_name":"straight_baseline",
+    "num_episodes":50,
+    "seed":42,
+    "max_steps":200,
+    "mission_xml_path":"env/mission.xml",
+    "direction":0,
+    "env_version":"v0",
+    "obs_version":"v0",
+    "action_version":"v0",
+    "reward_scheme":"sparse_v0",
+    "reward_params":{},
+    "log_reward_components":false
+}

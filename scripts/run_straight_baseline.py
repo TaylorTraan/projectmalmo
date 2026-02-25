@@ -1,4 +1,4 @@
-"""Run the tabular Q-learning baseline for a fixed number of episodes and log results.
+"""Run the straight-policy baseline (always one fixed direction) and log results.
 
 Uses the shared training harness and writes episode-level metrics to a
 timestamped run directory under runs/. A copy of the config is saved in the
@@ -6,13 +6,13 @@ run directory for reproducibility.
 
 Usage (from repo root):
 
-    python3 scripts/run_tabular_q.py --config configs/tabular_q_baseline.json
-    python3 scripts/run_tabular_q.py --config configs/tabular_q_baseline.json --num-episodes 100 --seed 0
+    python3 scripts/run_straight_baseline.py --config configs/straight_baseline.json
+    python3 scripts/run_straight_baseline.py --config configs/straight_baseline.json --num-episodes 20 --seed 0
 """
 
 import sys
 if sys.version_info < (3, 5):
-    sys.exit("This script requires Python 3.5 or later. Run with: python3 scripts/run_tabular_q.py ...")
+    sys.exit("This script requires Python 3.5 or later. Run with: python3 scripts/run_straight_baseline.py ...")
 
 import argparse
 import json
@@ -32,10 +32,10 @@ from harness import (
     save_episode_stats_csv,
     save_episode_stats_json,
 )
-from harness.agents import TabularQLearningAgent
+from harness.agents import StraightAgent
 
 
-DEFAULT_CONFIG_PATH = _REPO_ROOT / "configs" / "tabular_q_baseline.json"
+DEFAULT_CONFIG_PATH = _REPO_ROOT / "configs" / "straight_baseline.json"
 
 
 def load_config(path: Path) -> dict:
@@ -46,13 +46,13 @@ def load_config(path: Path) -> dict:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run tabular Q-learning baseline and log episode stats to runs/.",
+        description="Run straight (fixed-direction) baseline and log episode stats to runs/.",
     )
     parser.add_argument(
         "--config",
         type=Path,
         default=DEFAULT_CONFIG_PATH,
-        help="Path to experiment config JSON (default: configs/tabular_q_baseline.json).",
+        help="Path to experiment config JSON (default: configs/straight_baseline.json).",
     )
     parser.add_argument(
         "--num-episodes",
@@ -84,10 +84,11 @@ def main() -> int:
     if args.seed is not None:
         config["seed"] = args.seed
 
-    config_name = config.get("config_name", "tabular_q_baseline")
+    config_name = config.get("config_name", "straight_baseline")
     num_episodes = config["num_episodes"]
     seed = config["seed"]
     max_steps = config["max_steps"]
+    direction = config.get("direction", 0)  # 0=North, 1=South, 2=West, 3=East
     reward_scheme = config.get("reward_scheme", "sparse_v0")
     reward_params = config.get("reward_params", {})
     log_reward_components = bool(config.get("log_reward_components", False))
@@ -99,31 +100,8 @@ def main() -> int:
         print("[ERROR] Mission file not found: {}".format(mission_path), file=sys.stderr)
         return 1
 
-    learning_rate = config.get("learning_rate", 0.1)
-    discount = config.get("discount", 0.99)
-    epsilon_schedule = config.get("epsilon_schedule", "constant")
-    epsilon = config.get("epsilon")
-    epsilon_start = config.get("epsilon_start")
-    epsilon_end = config.get("epsilon_end")
-    epsilon_decay_episodes = config.get("epsilon_decay_episodes")
-
-    agent_kwargs = {
-        "learning_rate": learning_rate,
-        "discount": discount,
-        "seed": seed,
-        "epsilon_schedule": epsilon_schedule,
-    }
-    if epsilon is not None:
-        agent_kwargs["epsilon"] = epsilon
-    if epsilon_start is not None:
-        agent_kwargs["epsilon_start"] = epsilon_start
-    if epsilon_end is not None:
-        agent_kwargs["epsilon_end"] = epsilon_end
-    if epsilon_decay_episodes is not None:
-        agent_kwargs["epsilon_decay_episodes"] = epsilon_decay_episodes
-
-    print("[INFO] config_name={} num_episodes={} seed={} max_steps={} lr={} gamma={} eps_sched={}".format(
-        config_name, num_episodes, seed, max_steps, learning_rate, discount, epsilon_schedule,
+    print("[INFO] config_name={} num_episodes={} seed={} max_steps={} direction={}".format(
+        config_name, num_episodes, seed, max_steps, direction,
     ))
     print("[INFO] reward_scheme={} log_reward_components={}".format(
         reward_scheme, log_reward_components,
@@ -141,7 +119,7 @@ def main() -> int:
         print("[ERROR] MalmoPython not available: {}".format(exc), file=sys.stderr)
         return 1
 
-    agent = TabularQLearningAgent(**agent_kwargs)
+    agent = StraightAgent(direction=direction)
     run_dir = create_run_directory(config_name=config_name, seed=seed)
 
     try:
