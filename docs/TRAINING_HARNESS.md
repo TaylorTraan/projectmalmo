@@ -145,6 +145,14 @@ See [MALMO_SETUP.md](MALMO_SETUP.md) for environment details.
 
 ---
 
+## Reward Variants (Swappable)
+
+The training harness is reward-agnostic: it simply uses the scalar `reward` returned by `env.step(action)`.
+
+Reward designs are implemented inside the environment and selected via config (`reward_scheme`, `reward_params`). See [REWARD_SCHEMES.md](REWARD_SCHEMES.md) for the list of implemented variants and their intended effects.
+
+---
+
 ## Baseline runs
 
 To run the random policy baseline for a fixed number of episodes and log results under `runs/`, use the config-driven script and then summarize the run. See [BASELINE_RUNS.md](BASELINE_RUNS.md) for:

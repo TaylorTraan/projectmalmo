@@ -88,6 +88,9 @@ def main() -> int:
     num_episodes = config["num_episodes"]
     seed = config["seed"]
     max_steps = config["max_steps"]
+    reward_scheme = config.get("reward_scheme", "sparse_v0")
+    reward_params = config.get("reward_params", {})
+    log_reward_components = bool(config.get("log_reward_components", False))
     mission_path = Path(config["mission_xml_path"])
     if not mission_path.is_absolute():
         mission_path = _REPO_ROOT / mission_path
@@ -99,11 +102,17 @@ def main() -> int:
     print("[INFO] config_name={} num_episodes={} seed={} max_steps={}".format(
         config_name, num_episodes, seed, max_steps,
     ))
+    print("[INFO] reward_scheme={} log_reward_components={}".format(
+        reward_scheme, log_reward_components,
+    ))
 
     try:
         env = MalmoGridEnv(
             mission_xml_path=str(mission_path),
             max_steps=max_steps,
+            reward_scheme=reward_scheme,
+            reward_params=reward_params,
+            log_reward_components=log_reward_components,
         )
     except ImportError as exc:
         print("[ERROR] MalmoPython not available: {}".format(exc), file=sys.stderr)

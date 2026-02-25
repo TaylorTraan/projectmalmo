@@ -1,5 +1,5 @@
 {
-  "config_name": "tabular_q_baseline",
+  "config_name": "tabular_q_distance_shaping",
   "num_episodes": 200,
   "seed": 42,
   "max_steps": 200,
@@ -7,8 +7,14 @@
   "env_version": "v0",
   "obs_version": "v0",
   "action_version": "v0",
-  "reward_scheme": "sparse_v0",
-  "reward_params": {},
+  "reward_scheme": "distance_shaping_v1",
+  "reward_params": {
+    "goal_x": 0,
+    "goal_z": 9,
+    "distance_scale": 0.05,
+    "distance_metric": "manhattan",
+    "clip_abs": 0.2
+  },
   "log_reward_components": false,
   "learning_rate": 0.1,
   "discount": 0.99,
@@ -18,3 +24,4 @@
   "epsilon_end": 0.05,
   "epsilon_decay_episodes": 150
 }
+

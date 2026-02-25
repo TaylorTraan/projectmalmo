@@ -23,7 +23,13 @@ import json
 import sys
 import time
 import uuid
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
+
+from env.reward_schemes import (
+    RewardContext,
+    make_reward_scheme,
+    maybe_attach_reward_components,
+)
 
 try:
     import MalmoPython  # type: ignore[import]
@@ -85,6 +91,9 @@ class MalmoGridEnv:
         platform_y: float = 51,
         timeout: Optional[float] = None,
         seed: Optional[int] = None,
+        reward_scheme: str = "sparse_v0",
+        reward_params: Optional[Dict[str, Any]] = None,
+        log_reward_components: bool = False,
     ) -> None:
         self.mission_xml_path = mission_xml_path
         self.max_steps = max_steps
@@ -92,6 +101,9 @@ class MalmoGridEnv:
         self.platform_y = platform_y
         self.timeout = timeout or 60.0  # seconds
         self._seed = seed
+        self._reward_scheme_name = reward_scheme
+        self._reward = make_reward_scheme(reward_scheme, reward_params)
+        self._log_reward_components = bool(log_reward_components)
 
         self._agent_host = MalmoPython.AgentHost()
         self._client_pool = MalmoPython.ClientPool()
@@ -104,6 +116,7 @@ class MalmoGridEnv:
         self._step_count = 0
         self._prev_diamond_count = 0
         self._last_obs = None  # type: Optional[Position]
+        self._prev_reward_position = None  # type: Optional[Dict[str, float]]
 
     # ------------------------------------------------------------------
     # Public API
@@ -125,6 +138,7 @@ class MalmoGridEnv:
         self._step_count = 0
         self._prev_diamond_count = 0
         self._last_obs = None
+        self._prev_reward_position = None
 
         # Wait for the first valid observation so that we don't return a
         # None position and explode with an attribute error. This also
@@ -153,6 +167,7 @@ class MalmoGridEnv:
             time.sleep(0.1)
 
         self._last_obs = position
+        self._prev_reward_position = position.as_dict()
 
         return position.as_dict()
 
@@ -199,20 +214,33 @@ class MalmoGridEnv:
         if obs_json is None and world_state.is_mission_running and not done:
             reason = "no_observation_yet"
 
-        reward = self._compute_reward(done, reason)
-
         # Fallback for missing observations: reuse the last valid one.
         if position is None and self._last_obs is not None:
             position = self._last_obs
         elif position is not None:
             self._last_obs = position
 
+        position_dict = (position or self._last_obs).as_dict() if (position or self._last_obs) else None
+
+        ctx = RewardContext(
+            step_index=self._step_count,
+            position=position_dict,
+            prev_position=self._prev_reward_position,
+            diamond_increase=diamond_increase,
+            done=done,
+            termination_reason=reason,
+        )
+        reward, reward_components = self._reward.compute(ctx)
+        if position_dict is not None:
+            self._prev_reward_position = position_dict
+
         info = {
             "termination_reason": reason,
             "diamond_count": diamond_count,
-            "position": (position or self._last_obs).as_dict() if (position or self._last_obs) else None,
+            "position": position_dict,
             "step_index": self._step_count,
         }
+        maybe_attach_reward_components(info, reward_components, enabled=self._log_reward_components)
 
         # By construction, reward is 0.0 and done is False when reason is
         # "no_observation_yet", so callers can safely ignore those steps if
@@ -419,17 +447,7 @@ class MalmoGridEnv:
 
         return False, None
 
-    def _compute_reward(self, done: bool, reason: Optional[str]) -> float:
-        """Compute scalar reward based on termination reason."""
-        if not done:
-            return 0.0
-
-        if reason == "success_diamond_picked_up":
-            return 1.0
-        if reason == "failure_fell_off_platform":
-            return -1.0
-
-        # Timeout or unexpected mission end: neutral reward.
-        return 0.0
+    # Reward logic is implemented by env.reward_schemes and configured via
+    # reward_scheme/reward_params so agent code remains unchanged.
 
 
